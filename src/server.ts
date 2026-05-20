@@ -8,10 +8,12 @@ import { createCourtAgent } from "./agent.js";
 import type { CourtVerdict } from "./types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+// Resolve public dir relative to project root (works both in src/ and dist/esm/)
+const publicDir = join(__dirname, "../../public");
 
 const app = express();
 app.use(express.json());
-app.use(express.static(join(__dirname, "../public")));
+app.use(express.static(publicDir));
 
 const PORT = process.env.PORT ?? 3000;
 
