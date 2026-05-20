@@ -114,35 +114,66 @@ app.get("/api/history", async (_req, res) => {
       network === "mainnet"
         ? "https://mainnet.mirrornode.hedera.com"
         : "https://testnet.mirrornode.hedera.com";
+    const hashscanBase =
+      network === "mainnet" ? "https://hashscan.io/mainnet" : "https://hashscan.io/testnet";
 
-    const url = `${mirrorBase}/api/v1/topics/${store.topicId}/messages?limit=25&order=desc`;
+    // Fetch enough messages to cover chunked verdicts (each verdict ~4 chunks)
+    const url = `${mirrorBase}/api/v1/topics/${store.topicId}/messages?limit=100&order=asc`;
     const mirrorRes = await fetch(url);
     if (!mirrorRes.ok) throw new Error(`Mirror node error: ${mirrorRes.status}`);
 
-    const data = await mirrorRes.json() as { messages: Array<{ message: string; sequence_number: number; consensus_timestamp: string }> };
+    type MirrorMsg = {
+      message: string;
+      sequence_number: number;
+      consensus_timestamp: string;
+      chunk_info?: {
+        initial_transaction_id: { account_id: string; transaction_valid_start: string };
+        number: number;
+        total: number;
+      };
+    };
+    const data = await mirrorRes.json() as { messages: MirrorMsg[] };
 
-    const cases = data.messages
-      .map((m) => {
-        try {
-          const json = JSON.parse(Buffer.from(m.message, "base64").toString("utf-8"));
-          return {
-            caseId: json.case_id,
-            timestamp: json.timestamp,
-            question: json.question,
-            verdict: json.verdict,
-            tally: json.vote_tally,
-            majorityReasoning: json.majority_reasoning,
-            dissent: json.dissent ?? null,
-            sequenceNumber: m.sequence_number,
-            topicId: store.topicId,
-            hashscanUrl: `${network === "mainnet" ? "https://hashscan.io/mainnet" : "https://hashscan.io/testnet"}/topic/${store.topicId}`,
-          };
-        } catch {
-          return null;
-        }
-      })
-      .filter(Boolean);
+    // Group chunks by their initial_transaction_id key
+    const groups = new Map<string, MirrorMsg[]>();
+    for (const m of data.messages) {
+      const key = m.chunk_info
+        ? `${m.chunk_info.initial_transaction_id.account_id}-${m.chunk_info.initial_transaction_id.transaction_valid_start}`
+        : `solo-${m.sequence_number}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(m);
+    }
 
+    const cases: object[] = [];
+    for (const chunks of groups.values()) {
+      try {
+        // Sort by chunk number, then reassemble
+        chunks.sort((a, b) => (a.chunk_info?.number ?? 1) - (b.chunk_info?.number ?? 1));
+        const combined = Buffer.concat(chunks.map(c => Buffer.from(c.message, "base64")));
+        const json = JSON.parse(combined.toString("utf-8"));
+
+        // Only include complete, valid verdicts
+        if (!json.case_id || !json.question) continue;
+
+        cases.push({
+          caseId: json.case_id,
+          timestamp: json.timestamp,
+          question: json.question,
+          verdict: json.verdict,
+          tally: json.vote_tally,
+          majorityReasoning: json.majority_reasoning,
+          dissent: json.dissent ?? null,
+          sequenceNumber: chunks[0].sequence_number,
+          topicId: store.topicId,
+          hashscanUrl: `${hashscanBase}/topic/${store.topicId}`,
+        });
+      } catch {
+        // Skip malformed/incomplete groups
+      }
+    }
+
+    // Return most recent first
+    cases.reverse();
     res.json({ cases, topicId: store.topicId });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
