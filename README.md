@@ -23,7 +23,14 @@ Whatever the obvious answer is, Cipher argues the harder side — not to be cont
 
 **Try it now:** https://court.aivylabs.xyz
 
-![Hedera AI Court Demo](demo.gif)
+![Hedera AI Court Web Demo](demo-web.gif)
+
+<details>
+<summary>CLI demo</summary>
+
+![Hedera AI Court CLI Demo](demo.gif)
+
+</details>
 
 ---
 
