@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import rateLimit from "express-rate-limit";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { extractCaseInput, orchestrateCourt } from "./court.js";
@@ -12,8 +13,30 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const publicDir = join(__dirname, "../../public");
 
 const app = express();
+
+// Trust nginx reverse-proxy so req.ip is the real client IP
+app.set("trust proxy", 1);
+
 app.use(express.json());
 app.use(express.static(publicDir));
+
+// Rate limiter for /api/judge — 10 verdicts per IP per hour (each call uses 4 Gemini requests)
+const judgeLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many verdicts requested from this IP. Please wait before trying again." },
+});
+
+// Rate limiter for /api/seal — 5 seals per IP per hour (each call costs HBAR)
+const sealLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many seal requests from this IP. Please wait before trying again." },
+});
 
 const PORT = process.env.PORT ?? 3000;
 
@@ -33,7 +56,7 @@ const { client } = createCourtAgent(
 );
 
 // POST /api/judge — run all three judges
-app.post("/api/judge", async (req, res) => {
+app.post("/api/judge", judgeLimiter, async (req, res) => {
   try {
     const { dispute } = req.body as { dispute: string };
     if (!dispute?.trim()) {
@@ -55,7 +78,7 @@ app.post("/api/judge", async (req, res) => {
 });
 
 // POST /api/seal — seal verdict on HCS
-app.post("/api/seal", async (req, res) => {
+app.post("/api/seal", sealLimiter, async (req, res) => {
   try {
     const { verdict } = req.body as { verdict: CourtVerdict };
     if (!verdict) {
