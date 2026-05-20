@@ -80,13 +80,28 @@ export async function orchestrateCourt(
   caseId: string,
   apiKey: string
 ): Promise<CourtVerdict> {
+  // Randomly swap A/B so judges never systematically favour the submitter's framing.
+  // We flip back after deliberation so the final verdict always refers to the
+  // original positions the user submitted.
+  const swapped = Math.random() < 0.5;
+  const judgeInput: CaseInput = swapped
+    ? { ...caseInput, positionA: caseInput.positionB, positionB: caseInput.positionA }
+    : caseInput;
+
   const [vera, marco, cipher] = await Promise.all([
-    callVera(caseInput, apiKey),
-    callMarco(caseInput, apiKey),
-    callCipher(caseInput, apiKey),
+    callVera(judgeInput, apiKey),
+    callMarco(judgeInput, apiKey),
+    callCipher(judgeInput, apiKey),
   ]);
 
-  const { verdict, tally, majorityReasoning, dissent } = tallyVotes([vera, marco, cipher]);
+  // If we swapped, flip votes back to original orientation
+  const flipVote = (v: Vote): Vote => (v === "A" ? "B" : v === "B" ? "A" : v);
+  const unswap = (j: JudgeVerdict): JudgeVerdict =>
+    swapped ? { ...j, vote: flipVote(j.vote) } : j;
+
+  const [veraFinal, marcoFinal, cipherFinal] = [unswap(vera), unswap(marco), unswap(cipher)];
+
+  const { verdict, tally, majorityReasoning, dissent } = tallyVotes([veraFinal, marcoFinal, cipherFinal]);
 
   return {
     caseId,
@@ -94,7 +109,7 @@ export async function orchestrateCourt(
     question: caseInput.question,
     positionA: caseInput.positionA,
     positionB: caseInput.positionB,
-    judges: { vera, marco, cipher },
+    judges: { vera: veraFinal, marco: marcoFinal, cipher: cipherFinal },
     tally,
     verdict,
     majorityReasoning,
