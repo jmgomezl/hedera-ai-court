@@ -647,6 +647,67 @@
       padding: 32px 0;
     }
 
+    /* ── Try again button ── */
+    .try-again-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 20px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.05em;
+    }
+    .try-again-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+    /* ── Mobile ── */
+    @media (max-width: 600px) {
+      header { padding: 32px 16px 24px; }
+
+      .judges-intro { gap: 16px; padding: 16px; }
+      .judge-pill { font-size: 12px; }
+      .judge-pill .judge-avatar { width: 26px; height: 26px; }
+
+      main { padding: 24px 16px 60px; }
+
+      .case-question { font-size: 17px; }
+      .position { min-width: 100%; }
+
+      .judge-card { padding: 14px; }
+      .judge-card-header { flex-wrap: wrap; gap: 8px; }
+      .judge-name { font-size: 14px; }
+      .judge-avatar { width: 32px; height: 32px; }
+
+      .verdict-banner { padding: 20px 16px; }
+      .majority-reasoning { font-size: 13px; }
+
+      .seal-section { padding: 18px 14px; }
+      .seal-btn {
+        display: block;
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 10px;
+      }
+      .skip-btn { display: block; width: 100%; }
+
+      .share-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+      .share-x-btn, .try-again-btn { flex: 1; justify-content: center; min-width: 130px; }
+
+      .history-section { padding: 0 16px 40px; }
+      .history-card { padding: 14px; }
+      .history-card-top { flex-direction: column; gap: 4px; }
+
+      .seal-detail { flex-direction: column; gap: 2px; }
+      .seal-detail .val { font-size: 12px; word-break: break-all; }
+
+      footer { padding: 20px 16px; font-size: 11px; }
+    }
+
     /* ── Surprise me chip ── */
     .surprise-chip {
       border: 1px dashed var(--gold);
@@ -783,6 +844,7 @@
     </div>
 
     <div class="share-row" id="share-row" style="display:none">
+      <button class="try-again-btn" onclick="tryAgain()">🔁 Try again</button>
       <button class="share-x-btn" onclick="shareOnX()">Share on 𝕏</button>
     </div>
 
@@ -1144,6 +1206,13 @@
     const pick = SURPRISE_DISPUTES[Math.floor(Math.random() * SURPRISE_DISPUTES.length)];
     document.getElementById('dispute-input').value = pick;
     document.getElementById('dispute-input').focus();
+  }
+
+  // ── Try again ─────────────────────────────────────────────────────────────
+  function tryAgain() {
+    // Keep the dispute text, just resubmit — the random A/B swap means
+    // the judges may reach a different verdict this time
+    submitDispute();
   }
 
   // ── Share on X ────────────────────────────────────────────────────────────
