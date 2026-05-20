@@ -19,7 +19,9 @@ Whatever the obvious answer is, Cipher argues the harder side — not to be cont
 
 ---
 
-## Demo
+## Live Demo
+
+**Try it now:** http://167.172.152.172
 
 ![Hedera AI Court Demo](demo.gif)
 
