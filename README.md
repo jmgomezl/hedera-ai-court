@@ -165,7 +165,7 @@ hedera-ai-court/
 
 ## Bounty Submission
 
-Submitted for **Hedera AI Agent Bounty Program — Week 1**: "Fun Basic Hedera Agent" ($500)
+Submitted for **Hedera AI Agent Bounty Program — Week 1**: "Fun Basic Hedera Agent"
 
 **Checklist:**
 - ✅ Public GitHub repo
