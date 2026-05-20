@@ -21,7 +21,7 @@ Whatever the obvious answer is, Cipher argues the harder side — not to be cont
 
 ## Live Demo
 
-**Try it now:** http://167.172.152.172
+**Try it now:** https://court.aivylabs.xyz
 
 ![Hedera AI Court Demo](demo.gif)
 
