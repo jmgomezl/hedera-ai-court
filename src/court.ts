@@ -4,18 +4,23 @@ import { callMarco } from "./judges/marco.js";
 import { callCipher } from "./judges/cipher.js";
 import type { CaseInput, CourtVerdict, JudgeVerdict, Vote } from "./types.js";
 
-const EXTRACT_SYSTEM = `You are a court clerk. Your job is to parse a dispute submission and extract three fields as JSON.
-Always infer positions if not explicitly stated. Be charitable and specific.
-Respond ONLY with valid JSON, no markdown fences.`;
+const EXTRACT_SYSTEM = `You are a court clerk preparing cases for a panel of judges. Your job is to extract the core question and construct the STRONGEST POSSIBLE argument for each side — regardless of how the dispute was submitted.
+
+Rules:
+- The submitter naturally favours their own side. You must compensate by steelmanning BOTH positions equally.
+- positionA and positionB must each be a fully articulated argument with the best reasoning, values, or principles that support that side — not just a statement of preference.
+- If the opposing side's reasoning was not stated, infer the most compelling case they could make.
+- Neither position should read as weaker than the other on paper.
+- Respond ONLY with valid JSON, no markdown fences.`;
 
 const EXTRACT_TEMPLATE = (dispute: string) => `DISPUTE SUBMITTED:
 "${dispute}"
 
 Extract and respond with:
 {
-  "question": "the core yes/no or A-vs-B question being settled",
-  "positionA": "what the first party / person asking wants or believes",
-  "positionB": "what the opposing party / position argues"
+  "question": "the core yes/no or A-vs-B question, framed neutrally as a third party would frame it",
+  "positionA": "the strongest possible argument for the first party — steelmanned with reasoning and principles, not just their stated preference",
+  "positionB": "the strongest possible argument for the opposing side — steelmanned with reasoning and principles, even if the submitter did not articulate it"
 }`;
 
 export async function extractCaseInput(dispute: string, apiKey: string): Promise<CaseInput> {
