@@ -530,6 +530,37 @@
     .judge-pill.marco-pill  .judge-avatar { border-color: var(--marco); }
     .judge-pill.cipher-pill .judge-avatar { border-color: var(--cipher); }
 
+    /* ── Surprise me chip ── */
+    .surprise-chip {
+      border: 1px dashed var(--gold);
+      color: var(--gold);
+      background: transparent;
+    }
+    .surprise-chip:hover { background: rgba(212,175,55,0.08); }
+
+    /* ── Share on X button ── */
+    .share-row {
+      text-align: center;
+      margin: 20px 0 4px;
+    }
+    .share-x-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 22px;
+      background: #000;
+      color: #fff;
+      border: 1px solid #333;
+      border-radius: 22px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+      letter-spacing: 0.02em;
+    }
+    .share-x-btn:hover { background: #1a1a1a; border-color: #555; }
+
     /* ── Footer ── */
     footer {
       text-align: center;
@@ -580,6 +611,7 @@
       <div class="example-chip" onclick="setExample(this)">My co-founder wants to pivot 6 months before launch. I think it's a mistake.</div>
       <div class="example-chip" onclick="setExample(this)">Was pineapple on pizza a good idea?</div>
       <div class="example-chip" onclick="setExample(this)">I worked overtime for 3 weeks. My boss says that's just commitment.</div>
+      <div class="example-chip surprise-chip" onclick="surpriseMe()">🎲 Surprise me</div>
     </div>
 
     <button class="submit-btn" id="submit-btn" onclick="submitDispute()">
@@ -631,6 +663,10 @@
       <div class="dissent" id="dissent" style="display:none">
         <strong>Dissenting opinion:</strong> <span id="dissent-text"></span>
       </div>
+    </div>
+
+    <div class="share-row" id="share-row" style="display:none">
+      <button class="share-x-btn" onclick="shareOnX()">Share on 𝕏</button>
     </div>
 
     <div class="seal-section" id="seal-section">
@@ -793,6 +829,8 @@
           show('dissent');
         }
 
+        playGavel();
+        show('share-row');
         showBlock('verdict-section');
         document.getElementById('new-case-btn').style.display = 'block';
       }, 900);
@@ -852,6 +890,7 @@
     hide('new-case-btn');
     hide('status');
     hide('error-box');
+    hide('share-row');
     document.getElementById('judge-cards').innerHTML = '';
     currentVerdict = null;
     document.getElementById('dispute-input').focus();
@@ -861,6 +900,84 @@
   document.getElementById('dispute-input').addEventListener('keydown', e => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') submitDispute();
   });
+
+  // ── Surprise me ──────────────────────────────────────────────────────────
+  const SURPRISE_DISPUTES = [
+    "My roommate insists the toilet paper roll should go under, not over. Who is objectively right?",
+    "I let a friend borrow $20 five years ago and they never paid me back. Should I bring it up?",
+    "Is a hotdog a sandwich? Settle this once and for all.",
+    "My partner says cereal before milk is wrong. Am I the villain here?",
+    "I skipped my best friend's wedding to attend a Taylor Swift concert. Was it justified?",
+    "Is it ethical to recline your airplane seat on a 2-hour flight?",
+    "My cat knocks things off tables on purpose. Is this malicious intent or innocent curiosity?",
+    "I put ketchup on my scrambled eggs. My family has disowned me. Are they overreacting?",
+    "Should the person who finishes the last of the coffee be required to make a new pot?",
+    "Is it acceptable to ghost someone after a third date with no explanation?",
+    "My neighbor parks 2 inches over the line every single day. Do I have grounds for war?",
+    "Can you be friends with your ex? My new partner says no. Who's right?",
+    "I put pineapple AND jalapeños on pizza. Am I a villain or a visionary?",
+    "My coworker microwaves fish in the office kitchen daily. Is this grounds for HR?",
+    "Is it OK to read over someone's shoulder on the subway if they have a really interesting book?",
+  ];
+
+  function surpriseMe() {
+    const pick = SURPRISE_DISPUTES[Math.floor(Math.random() * SURPRISE_DISPUTES.length)];
+    document.getElementById('dispute-input').value = pick;
+    document.getElementById('dispute-input').focus();
+  }
+
+  // ── Share on X ────────────────────────────────────────────────────────────
+  function shareOnX() {
+    if (!currentVerdict) return;
+    const v = currentVerdict;
+    const question = v.question || document.getElementById('dispute-input').value.trim();
+    const verdict  = v.verdict  || '';
+    const tally    = v.tally    || '';
+    const text = `⚖️ The Hedera AI Court has ruled!\n\n"${question}"\n\nVerdict: ${verdict} (${tally})\n\nSealed forever on the blockchain → https://court.aivylabs.xyz #HederaAICourt`;
+    window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(text), '_blank');
+  }
+
+  // ── Gavel sound (Web Audio API — no external file needed) ─────────────────
+  function playGavel() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+      // Impact thud
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 0.15, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) {
+        const t = i / ctx.sampleRate;
+        data[i] = Math.exp(-t * 60) * (Math.random() * 2 - 1) * 0.9;
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+
+      // Low-pass so it sounds woody, not just noise
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 400;
+
+      // Slight reverb via a tiny delay
+      const delay = ctx.createDelay(0.1);
+      delay.delayTime.value = 0.04;
+      const fb = ctx.createGain();
+      fb.gain.value = 0.25;
+
+      const dry = ctx.createGain();
+      dry.gain.value = 0.8;
+
+      src.connect(filter);
+      filter.connect(dry);
+      dry.connect(ctx.destination);
+      filter.connect(delay);
+      delay.connect(fb);
+      fb.connect(delay);
+      delay.connect(ctx.destination);
+
+      src.start();
+      setTimeout(() => ctx.close(), 500);
+    } catch (_) { /* audio not available — silently skip */ }
+  }
 </script>
 
 </body>
