@@ -481,6 +481,41 @@
       margin-top: 16px;
     }
 
+    /* ── Hero image ── */
+    .hero-img {
+      width: 100%;
+      max-height: 260px;
+      object-fit: cover;
+      object-position: center 30%;
+      display: block;
+      mask-image: linear-gradient(to bottom, transparent 0%, black 18%, black 82%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 18%, black 82%, transparent 100%);
+    }
+
+    /* ── Judge portrait images ── */
+    .judge-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      object-position: center top;
+      border: 2px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .judge-card.vera .judge-avatar   { border-color: var(--vera); }
+    .judge-card.marco .judge-avatar  { border-color: var(--marco); }
+    .judge-card.cipher .judge-avatar { border-color: var(--cipher); }
+
+    .judge-pill .judge-avatar {
+      width: 32px;
+      height: 32px;
+    }
+
+    .judge-pill.vera-pill   .judge-avatar { border-color: var(--vera); }
+    .judge-pill.marco-pill  .judge-avatar { border-color: var(--marco); }
+    .judge-pill.cipher-pill .judge-avatar { border-color: var(--cipher); }
+
     /* ── Footer ── */
     footer {
       text-align: center;
@@ -497,24 +532,24 @@
 <body>
 
 <header>
-  <div class="gavel">⚖️</div>
+  <img class="hero-img" src="/images/hero.png" alt="Hedera AI Court" />
   <h1>Hedera AI Court</h1>
   <p>Every dispute deserves a verdict. Every verdict deserves to last forever.</p>
 </header>
 
 <div class="judges-intro">
-  <div class="judge-pill">
-    <span>⚖️</span>
+  <div class="judge-pill vera-pill">
+    <img class="judge-avatar" src="/images/vera.png" alt="Judge Vera" />
     <span class="name">Judge Vera</span>
     <span>— The Logician</span>
   </div>
-  <div class="judge-pill">
-    <span>🕊️</span>
+  <div class="judge-pill marco-pill">
+    <img class="judge-avatar" src="/images/marco.png" alt="Judge Marco" />
     <span class="name">Judge Marco</span>
     <span>— The Humanist</span>
   </div>
-  <div class="judge-pill">
-    <span>😈</span>
+  <div class="judge-pill cipher-pill">
+    <img class="judge-avatar" src="/images/cipher.png" alt="Judge Cipher" />
     <span class="name">Judge Cipher</span>
     <span>— The Devil's Advocate</span>
   </div>
@@ -655,9 +690,9 @@
   }
 
   const JUDGE_META = {
-    vera:   { icon: '⚖️', title: 'Judge Vera',   sub: 'The Logician' },
-    marco:  { icon: '🕊️', title: 'Judge Marco',  sub: 'The Humanist' },
-    cipher: { icon: '😈', title: 'Judge Cipher', sub: "The Devil's Advocate" },
+    vera:   { img: '/images/vera.png',   title: 'Judge Vera',   sub: 'The Logician' },
+    marco:  { img: '/images/marco.png',  title: 'Judge Marco',  sub: 'The Humanist' },
+    cipher: { img: '/images/cipher.png', title: 'Judge Cipher', sub: "The Devil's Advocate" },
   };
 
   function renderJudge(j, delay) {
@@ -667,7 +702,7 @@
     card.innerHTML = `
       <div class="judge-card-header">
         <div class="judge-name">
-          <span class="icon">${meta.icon}</span>
+          <img class="judge-avatar" src="${meta.img}" alt="${meta.title}" />
           <span>
             <span class="name">${meta.title}</span>
             <span style="color:var(--muted); font-size:12px; font-weight:normal"> — ${meta.sub}</span>
