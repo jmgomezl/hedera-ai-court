@@ -100,6 +100,56 @@ app.post("/api/seal", sealLimiter, async (req, res) => {
   }
 });
 
+// GET /api/history — fetch sealed verdicts from Hedera Mirror Node
+app.get("/api/history", async (_req, res) => {
+  try {
+    const store = loadCasesStore();
+    if (!store.topicId) {
+      res.json({ cases: [] });
+      return;
+    }
+
+    const network = process.env.HEDERA_NETWORK ?? "testnet";
+    const mirrorBase =
+      network === "mainnet"
+        ? "https://mainnet.mirrornode.hedera.com"
+        : "https://testnet.mirrornode.hedera.com";
+
+    const url = `${mirrorBase}/api/v1/topics/${store.topicId}/messages?limit=25&order=desc`;
+    const mirrorRes = await fetch(url);
+    if (!mirrorRes.ok) throw new Error(`Mirror node error: ${mirrorRes.status}`);
+
+    const data = await mirrorRes.json() as { messages: Array<{ message: string; sequence_number: number; consensus_timestamp: string }> };
+
+    const cases = data.messages
+      .map((m) => {
+        try {
+          const json = JSON.parse(Buffer.from(m.message, "base64").toString("utf-8"));
+          return {
+            caseId: json.case_id,
+            timestamp: json.timestamp,
+            question: json.question,
+            verdict: json.verdict,
+            tally: json.vote_tally,
+            majorityReasoning: json.majority_reasoning,
+            dissent: json.dissent ?? null,
+            sequenceNumber: m.sequence_number,
+            topicId: store.topicId,
+            hashscanUrl: `${network === "mainnet" ? "https://hashscan.io/mainnet" : "https://hashscan.io/testnet"}/topic/${store.topicId}`,
+          };
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
+
+    res.json({ cases, topicId: store.topicId });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Hedera AI Court server running on http://localhost:${PORT}`);
 });

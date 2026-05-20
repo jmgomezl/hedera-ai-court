@@ -530,6 +530,123 @@
     .judge-pill.marco-pill  .judge-avatar { border-color: var(--marco); }
     .judge-pill.cipher-pill .judge-avatar { border-color: var(--cipher); }
 
+    /* ── History section ── */
+    .history-section {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 0 24px 48px;
+    }
+
+    .history-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      padding: 12px 0;
+      transition: color 0.2s;
+      width: 100%;
+      border-top: 1px solid var(--border);
+      margin-top: 8px;
+    }
+    .history-toggle:hover { color: var(--gold); }
+    .history-toggle .arrow { font-size: 10px; transition: transform 0.2s; }
+    .history-toggle.open .arrow { transform: rotate(90deg); }
+
+    #history-list { display: none; }
+
+    .history-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px 20px;
+      margin-bottom: 12px;
+      background: var(--surface);
+      transition: border-color 0.2s;
+    }
+    .history-card:hover { border-color: var(--gold); }
+
+    .history-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .history-case-id {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-family: 'Courier New', monospace;
+    }
+
+    .history-tally {
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .history-question {
+      font-size: 15px;
+      color: var(--text);
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+
+    .history-verdict {
+      font-size: 13px;
+      font-weight: bold;
+      color: var(--gold-light);
+      margin-bottom: 8px;
+    }
+
+    .history-reasoning {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .history-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+
+    .history-date {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: 'Courier New', monospace;
+    }
+
+    .history-link {
+      font-size: 11px;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: 0.05em;
+    }
+    .history-link:hover { color: var(--gold); }
+
+    .history-empty {
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+      padding: 32px 0;
+    }
+
     /* ── Surprise me chip ── */
     .surprise-chip {
       border: 1px dashed var(--gold);
@@ -701,6 +818,16 @@
     Bring another case to court
   </button>
 </main>
+
+<!-- Past Cases -->
+<div class="history-section">
+  <button class="history-toggle" id="history-toggle" onclick="toggleHistory()">
+    <span class="arrow">▶</span>
+    <span>Past Sealed Cases</span>
+    <span id="history-count" style="color:var(--gold); margin-left:4px"></span>
+  </button>
+  <div id="history-list"></div>
+</div>
 
 <footer>
   Built on <a href="https://hedera.com" target="_blank">Hedera</a> &middot;
@@ -894,6 +1021,67 @@
     document.getElementById('judge-cards').innerHTML = '';
     currentVerdict = null;
     document.getElementById('dispute-input').focus();
+  }
+
+  // ── Past Cases History ────────────────────────────────────────────────────
+  let historyLoaded = false;
+
+  async function toggleHistory() {
+    const toggle = document.getElementById('history-toggle');
+    const list   = document.getElementById('history-list');
+    const isOpen = toggle.classList.contains('open');
+
+    if (isOpen) {
+      toggle.classList.remove('open');
+      list.style.display = 'none';
+      return;
+    }
+
+    toggle.classList.add('open');
+    list.style.display = 'block';
+
+    if (historyLoaded) return;
+    list.innerHTML = '<div class="history-empty">Loading past cases from Hedera…</div>';
+
+    try {
+      const res  = await fetch('/api/history');
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || 'Failed to load history');
+
+      historyLoaded = true;
+      const cases = data.cases || [];
+      const countEl = document.getElementById('history-count');
+      if (cases.length) countEl.textContent = `(${cases.length})`;
+
+      if (!cases.length) {
+        list.innerHTML = '<div class="history-empty">No sealed cases yet. Be the first to seal a verdict on Hedera.</div>';
+        return;
+      }
+
+      list.innerHTML = cases.map(c => {
+        const date = new Date(c.timestamp).toLocaleDateString('en-US', {
+          year: 'numeric', month: 'short', day: 'numeric'
+        });
+        return `
+          <div class="history-card">
+            <div class="history-card-top">
+              <span class="history-case-id">${c.caseId}</span>
+              <span class="history-tally">${c.tally ?? ''}</span>
+            </div>
+            <div class="history-question">"${c.question}"</div>
+            <div class="history-verdict">⚖️ ${c.verdict}</div>
+            <div class="history-reasoning">${c.majorityReasoning ?? ''}</div>
+            <div class="history-footer">
+              <span class="history-date">${date}</span>
+              <a class="history-link" href="${c.hashscanUrl}" target="_blank">View on Hashscan ↗</a>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } catch (err) {
+      list.innerHTML = `<div class="history-empty">Could not load history: ${err.message}</div>`;
+    }
   }
 
   // Allow Cmd/Ctrl+Enter to submit
